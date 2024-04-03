@@ -1,0 +1,37 @@
+{
+  "name": "telegram-movie-bot",
+  "version": "1.0.0",
+  "description": "Telegram NodeJS movie filter bot",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Running Test\" &&  nodemon index.js",
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SafwanGanz/tg_movie_filter_bot.git"
+  },
+  "keywords": [
+    "Tgbot",
+    "Tg",
+    "movie",
+    "bot",
+    "telegram",
+    "bot",
+    "pyrogram",
+    "bot",
+    "bot"
+  ],
+  "author": "SafwanGanz",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/SafwanGanz/tg_movie_filter_bot/issues"
+  },
+  "homepage": "https://github.com/SafwanGanz/tg_movie_filter_bot#readme",
+  "dependencies": {
+    "axios": "^1.6.8",
+    "chalk": "^5.3.0",
+    "mongodb": "^6.5.0",
+    "telegraf": "^4.16.3"
+  }
+}
