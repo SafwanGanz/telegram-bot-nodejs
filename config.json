@@ -1,0 +1,8 @@
+{
+    "BOT_TOKEN": "",
+    "PREFIX": "/",
+    "OWNER_ID": "",
+    "MONGO_URL": "",
+    "SUDO": "",
+    "MOVIE_DB_CHANNEL_ID": ""
+}
