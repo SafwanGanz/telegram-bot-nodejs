@@ -2,8 +2,9 @@
 
 
 <p align="center">
-  <img alt="image" src="" />
-</p>
+  <img alt="image" src="./assets/nodejs.png" width="100" />
+
+  </p>
 
 This is a simple guide to set up a Telegram bot using bNode.js and the Telegraf npm package.
 
