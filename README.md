@@ -17,7 +17,7 @@
 
 Add valid values on config.json
 
-bash```{
+```bash{
     "BOT_TOKEN": "Add Your Bot Token here",
     "PREFIX": "Deafult - "/",
     "OWNER_ID": "Put owner chat id",
