@@ -6,7 +6,8 @@
 
   </p>
 
-This is a simple guide to set up a Telegram bot using bNode.js and the Telegraf npm package.
+
+
 
 ## 📋 Requirements
 
