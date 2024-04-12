@@ -1,11 +1,15 @@
-const { Telegraf } = require('telegraf')
+const { Telegraf, Context } = require('telegraf')
 const { message } = require('telegraf/filters')
 const { useNewReplies } = require("telegraf/future")
 const { verifyToken } = require('./lib/index')
 const { getArgs, getUser, delay } = require('./lib/function')
 const fs = require('fs')
-const { createMembersData, member } = require('./lib/db')
+let cp = require('child_process')
+let { promisify } = require('util')
+const { createMembersData, member, getMemberData, setting, settings } = require('./lib/db')
 const config = require('./config.json')
+
+
 if (config.BOT_TOKEN == "") {
     console.log("Pleas Add Your Bot token in config.json")
 }
@@ -24,7 +28,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             { command: "/help", description: "Commands List" }
         ]);
         bot.start(async (ctx) => {
-            welcome_note = `Welcome To ${ctx.message.from.first_name}\n\n`
+            welcome_note = `Hai ${ctx.message.from.first_name}\n\n`
             try {
                 let check_db = await member.findOne({ "_id": ctx.message.from.id })
                 if (check_db == null) {
@@ -36,27 +40,33 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                 console.log(e)
             }
             welcome_note += `This is a list of available commands:\n\n/start - Start the bot\n/help - List of commands\n/ping - Check if the bot is online\n\nNote that this bot is still under devlopment and more features will be added soon.`
-            ctx.reply(welcome_note)
+            buttons = [
+                [{ text: 'Add to your group', url: "https://t.me/felixStudyBot?startgroup" }]
+            ]
+            ctx.reply(welcome_note, {
+                reply_markup: {
+                    inline_keyboard: buttons
+                }
+            })
         });
         bot.help((ctx) => {
             console.log(ctx.message.chat.id)
-            if (ctx.message.chat.id == isOwner) {
-                const buttons = [
-                    [
-                        { text: 'Settings ⚙️', callback_data: 'settings' },
-                        { text: 'Sudo Lst 📋', callback_data: 'sudo' },
-                        { text: 'Mode lst 🪛', callback_data: 'moderators' }
-                    ]
-                ];
+            const buttons = [
+                [
+                    { text: 'Settings ⚙️', callback_data: 'settings' },
+                    { text: 'Sudo Lst 📋', callback_data: 'sudo' },
+                    { text: 'Mode lst 🪛', callback_data: 'moderators' }
+                ],
+                [
+                    { text: 'test', callback_data: 'hhh' }
+                ]
+            ];
 
-                ctx.reply(`As the owner of the bot, you have access to sensitive settings and controls that govern the behavior and functionality of the bot. It's crucial to handle these settings with care to maintain the integrity and security of the bot's operations. `, {
-                    reply_markup: {
-                        inline_keyboard: buttons
-                    }
-                });
-            } else {
-                ctx.reply("hai")
-            }
+            ctx.reply(`As the owner of the bot, you have access to sensitive settings and controls that govern the behavior and functionality of the bot. It's crucial to handle these settings with care to maintain the integrity and security of the bot's operations. `, {
+                reply_markup: {
+                    inline_keyboard: buttons
+                }
+            });
         });
         bot.on('callback_query', async (ctx) => {
             const data = ctx.update.callback_query.data;
@@ -69,7 +79,8 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     break
                 case 'settings':
                     const buttons = [
-                        { text: 'Back', callback_data: 'back' }
+                        { text: 'Back', callback_data: 'back' },
+                        { text: 'Next', callback_data: 'next ' }
                     ]
                     setting_note = `Settings are a crucial part of the bot's functionality and behavior. They govern how the bot interacts wuth users and the environment. it's the owner's responsibility to manage these settings with care to ensure the bot operates as intended.`
                     ctx.reply(setting_note, {
@@ -77,6 +88,12 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                             inline_keyboard: [buttons]
                         }
                     })
+                    break
+                case 'leave':
+                    ctx.deleteMessage(ctx.update.callback_query.message.message_id)
+                    break
+                case 'autodl_true':
+                    isTurnOn = await setting.findOne({ "_id": ctx.message.chat.id })
                     break
             }
         })
@@ -134,54 +151,138 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             else if (isLocation) typeMessage = "Location";
             else if (isDocument) typeMessage = "Document";
             else if (isAnimation) typeMessage = "Animation";
+
             switch (command) {
                 case "ping":
-                    ctx.reply("pong")
-                    break
+                    ctx.reply("pong");
+                    break;
                 case "setsudo":
-                    if (isOwner) {
+                    if (isOwner == ctx.message.chat.id) {
                         if (args) {
                             try {
-                            db = await member.findOne({ "_id": args[0] })
-                            if (db == null) {
-                                ctx.reply('You are not a member of this bot\n\nPlease use /start to start the bot')
-                            } else {
-                                if (db.isSudo == true) {
-                                    ctx.reply('You are sudo user')
+                                db = await member.findOne({ "_id": args[0] });
+                                if (db == null) {
+                                    ctx.reply('You are not a member of this bot\n\nPlease use /start to start the bot');
                                 } else {
-                                    db_update = await member.updateOne({ "_id": args[0] }, { $set: { isSudo: true } })
-                                    note = `Hei ${ctx.message.from.first_name} Successfully added new sudo user`
-                                    ctx.reply(note)
+                                    if (db.isSudo == true) {
+                                        ctx.reply('You are sudo user');
+                                    } else {
+                                        db_update = await member.updateOne({ "_id": args[0] }, { $set: { isSudo: true } });
+                                        note = `Hei ${ctx.message.from.first_name} Successfully added new sudo user`;
+                                        ctx.reply(note);
+                                    }
                                 }
+                            } catch (e) {
+                                console.log(e);
                             }
-                        } catch (e) {
-                            console.log(e)
-                        }
                         } else {
-                            ctx.reply('Please provide user id')
+                            ctx.reply('Please provide user id');
                         }
                     } else {
-                        ctx.reply('Only owner can use this')
+                        ctx.reply('Only owner can use this');
+                    }
+                    break;
+                case 'chatid':
+                    ctx.reply('chat id: ' + ctx.message.from.id);
+                    break;
+                case 'botid':
+                    ctx.reply('bot id: ' + ctx.botInfo.id);
+                    break;
+                case 'groupid':
+                    ctx.reply('group id: ' + ctx.chat.id);
+                    break;
+                case 'movie':
+                    if (args.length == 0) {
+                        ctx.reply('please provide movie name');
+                    } else {
+                        movie_name = args[0];
+                        ctx.reply(`searching for ${movie_name}...`);
+                    }
+                    break;
+                case 'listuser':
+                    try {
+                        const users = await new Promise((resolve, reject) => {
+                            member.find({}).toArray((err, users) => {
+                                if (err) {
+                                    console.error('Error occurred while fetching users', err);
+                                    reject(err);
+                                } else {
+                                    resolve(users);
+                                }
+                            });
+                        });
+
+                        const userNames = users.map(user => {
+                            user.username
+                            user.id
+                        }).join('\n');
+                        console.log(userNames);
+                    } catch (e) {
+                        console.error('Error occurred', e);
+                        ctx.reply('An error occurred while processing your request');
+                    }
+                    break;
+                case 'bc':
+                case 'broadcast':
+                    try {
+                        let data = await member.find({}).toArray()
+                        arr = []
+                        let res = data.forEach(res => {
+                            arr.push(res._id)
+                        })
+                        ctx.sendMessage('Broadcast testing', arr)
+                    } catch (e) {
+                        console.log(e)
                     }
                     break
-                    case 'chatid':
-                        ctx.reply('chat id: ' + ctx.message.from.id)
-                        break
-                        case 'botid':
-                            ctx.reply('bot id: ' + ctx.botInfo.id)
-                            break
-                            case 'groupid':
-                                ctx.reply('group id: ' + ctx.chat.id)
-                                break
-                                case 'movie':
-                                    if (args.length == 0 ){
-                                        ctx.reply('please provide movie name')
-                                    } else {
-                                        movie_name = args[0]
-                                        ctx.reply(`searching for ${movie_name}...`)
+                case 'quote':
+                    if (isQuoted && isGroup) {
+                        quote = ctx.message.reply_to_message;
+                        await ctx.reply(JSON.stringify(quote, null, 2));
+                    } else {
+                        ctx.reply('Please reply to a message ');
+                    }
+                    break;
+                case 'speed':
+                    if (isOwner == ctx.message.chat.id) {
+                        let exec = promisify(cp.exec).bind(cp);
+                        ctx.reply(`Running speed-test...`);
+                        let o;
+                        try {
+                            o = await exec('python speed.py');
+                        } catch (e) {
+                            o = e;
+                        } finally {
+                            let { stdout, stderr } = o;
+                            if (stdout.trim()) {
+                                let result = stdout;
+                                ctx.reply(result);
+                            }
+                            if (stderr.trim()) ctx.reply(stderr);
+                        }
+                    } else {
+                        ctx.reply('Only owner can use this command');
+                    }
+                    break;
+                case 'autodl':
+                case 'dl':
+                    button = [
+                        { text: 'Enable', callback_data: '/autodl_true' },
+                        { text: 'Disable', callback_data: '/autodl_false' },
+                        [{ text: 'Leave', callback_data: 'leave' }]
+                    ],
+                        ctx.reply('For enable auto downloader click enable or if u want disable click disable', {
+                            reply_markup: {
+                                inline_keyboard: [button]
+                            }
+                        })
+                    break
+                default:
+                    if (body == 'hello') {
+                        ctx.reply('hello')
+                    }
+                    break
 
-                                    }
-                                    break
             }
         })
         bot.launch()
