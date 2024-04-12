@@ -2,12 +2,15 @@ const { Telegraf, Context } = require('telegraf')
 const { message } = require('telegraf/filters')
 const { useNewReplies } = require("telegraf/future")
 const { verifyToken } = require('./lib/index')
-const { getArgs, getUser, delay } = require('./lib/function')
+const { getArgs, getUser, delay, isRegisterGroup, isRegisterMemebr } = require('./lib/function')
 const fs = require('fs')
 let cp = require('child_process')
 let { promisify } = require('util')
 const { createMembersData, member, getMemberData, setting, settings } = require('./lib/db')
 const config = require('./config.json')
+
+
+
 if (config.BOT_TOKEN == "") {
     console.log("Pleas Add Your Bot token in config.json")
 }
@@ -325,11 +328,21 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         console.log(e)
                     }
                         break
-                default:
-                    if (body == 'hello') {
-                        ctx.reply('hello')
+                /* default:
+                  const isRegister = isRegisterGroup(ctx.message.chat.id)
+                    const isMemebr = isRegisterMemebr(ctx.message.chat.id)
+                    try {
+                  if (isRegister == true || isMemebr == true) {
+                if (/^https?:\/\/.*youtu/i.test(body)) {
+                 
+                }
+            }
+                    } catch (e) {
+
                     }
+                  
                     break
+                    */
 
             }
         })
