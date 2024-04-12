@@ -8,10 +8,6 @@ let cp = require('child_process')
 let { promisify } = require('util')
 const { createMembersData, member, getMemberData, setting, settings } = require('./lib/db')
 const config = require('./config.json')
-const { type } = require('os')
-const { group } = require('console')
-
-
 if (config.BOT_TOKEN == "") {
     console.log("Pleas Add Your Bot token in config.json")
 }
