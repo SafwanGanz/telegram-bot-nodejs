@@ -20,7 +20,7 @@ Add valid values on config.json
 ```bash
 {
     "BOT_TOKEN": "Add Your Bot Token here",
-    "PREFIX": "Default - "/",
+    "PREFIX": "/",
     "OWNER_ID": "Put owner chat id",
     "MONGO_URL": "put mongoDB Url",
     "SUDO": "(if u want) add chat id of sudo user",
