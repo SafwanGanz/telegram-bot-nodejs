@@ -267,15 +267,19 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                 case 'autodl':
                 case 'dl':
                     button = [
-                        { text: 'Enable', callback_data: '/autodl_true' },
-                        { text: 'Disable', callback_data: '/autodl_false' },
-                        [{ text: 'Leave', callback_data: 'leave' }]
-                    ],
-                        ctx.reply('For enable auto downloader click enable or if u want disable click disable', {
-                            reply_markup: {
-                                inline_keyboard: [button]
-                            }
-                        })
+                        [
+                            { text: 'Enable', callback_data: '/autodl_true' },
+                            { text: 'Disable', callback_data: '/autodl_false' }
+                        ],
+                        [
+                            { text: 'Leave', callback_data: 'leave' }
+                        ]
+                    ]
+                    ctx.reply('For enable auto downloader click enable or if u want disable click disable', {
+                        reply_markup: {
+                            inline_keyboard: button
+                        }
+                    })
                     break
                 default:
                     if (body == 'hello') {
