@@ -8,6 +8,8 @@ let cp = require('child_process')
 let { promisify } = require('util')
 const { createMembersData, member, getMemberData, setting, settings } = require('./lib/db')
 const config = require('./config.json')
+const { type } = require('os')
+const { group } = require('console')
 
 
 if (config.BOT_TOKEN == "") {
@@ -50,28 +52,16 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             })
         });
         bot.help((ctx) => {
-            console.log(ctx.message.chat.id)
-            const buttons = [
-                [
-                    { text: 'Settings ⚙️', callback_data: 'settings' },
-                    { text: 'Sudo Lst 📋', callback_data: 'sudo' },
-                    { text: 'Mode lst 🪛', callback_data: 'moderators' }
-                ],
-                [
-                    { text: 'test', callback_data: 'hhh' }
-                ]
-            ];
-
-            ctx.reply(`As the owner of the bot, you have access to sensitive settings and controls that govern the behavior and functionality of the bot. It's crucial to handle these settings with care to maintain the integrity and security of the bot's operations. `, {
-                reply_markup: {
-                    inline_keyboard: buttons
-                }
-            });
+     ctx.reply('/start - For resgiter and access\n/ping\n/activate - Add your group to database\n/setsudo - add sudo user\n/chatid\n/botid\n/groupid\nBot is still devloping stage!!')
         });
         bot.on('callback_query', async (ctx) => {
             const data = ctx.update.callback_query.data;
             const msg_id = ctx.update.callback_query.message.message_id
+            const type = ctx.update.callback_query.message.chat.type
             switch (data) {
+                case 'test':
+                    fs.writeFileSync('./data.json', JSON.stringify(ctx, null, 2))
+                    break
                 case 'ping':
                     ctx.reply('Pong 🥳!')
                     await delay(1000)
@@ -93,7 +83,50 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     ctx.deleteMessage(ctx.update.callback_query.message.message_id)
                     break
                 case 'autodl_true':
-                    isTurnOn = await setting.findOne({ "_id": ctx.message.chat.id })
+                    try {
+                        if (type == 'group') {
+                            isTurnOn = await setting.findOne({ "_id": ctx.update.callback_query.message.chat.id })
+                            if (isTurnOn == null) {
+                                ctx.reply(`Group is not found in our database\nPlease activate using /activate`)
+                            } else {
+                                await setting.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { auto_dl: true } })
+                                ctx.reply('Successfuly enabled!!')
+                            }
+                        } else {
+                            isTurnOn = await member.findOne({ "_id": ctx.update.callback_query.message.chat.id })
+                            if (isTurnOn == null) {
+                                ctx.reply(`You're not found in our database\nPlease activate using /start`)
+                            } else {
+                                await member.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { auto_dl: true } });
+                                ctx.reply('Successfully enabled!!')
+                            }
+                        }
+                    } catch (e) {
+                        console.log(e)
+                    }
+                    break
+                case 'autodl_false':
+                    try {
+                        if (type == 'group') {
+                            isTurnOn = await setting.findOne({ "_id": ctx.update.callback_query.message.chat.id })
+                            if (isTurnOn == null) {
+                                ctx.reply(`Group is not found in our database\nPlease activate using /activate`)
+                            } else {
+                                await setting.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { auto_dl: false } })
+                                ctx.reply('Successfuly enabled!!')
+                            }
+                        } else {
+                            isTurnOn = await member.findOne({ "_id": ctx.update.callback_query.message.chat.id })
+                            if (isTurnOn == null) {
+                                ctx.reply(`You're not found in our database\nPlease activate using /start`)
+                            } else {
+                                await member.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { auto_dl: false } });
+                                ctx.reply('Successfully enabled!!')
+                            }
+                        }
+                    } catch (e) {
+                        console.log(e)
+                    } 
                     break
             }
         })
@@ -268,11 +301,11 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                 case 'dl':
                     button = [
                         [
-                            { text: 'Enable', callback_data: '/autodl_true' },
-                            { text: 'Disable', callback_data: '/autodl_false' }
+                            { text: 'Enable', callback_data: 'autodl_true' },
+                            { text: 'Disable', callback_data: 'autodl_false' }
                         ],
                         [
-                            { text: 'Leave', callback_data: 'leave' }
+                            { text: 'Leave', callback_data: 'leave'}
                         ]
                     ]
                     ctx.reply('For enable auto downloader click enable or if u want disable click disable', {
@@ -281,6 +314,21 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     })
                     break
+                    case 'activate':
+                        try {
+                      if (ctx.message.chat.type == 'group') {
+                       isTurnOn = await setting.findOne({"_id": ctx.message.chat.id})
+                       if (isTurnOn == null) {
+                        await settings(ctx.message.chat.id)
+                        ctx.reply("Successfully Activated!!")
+                       } else {
+                        // console.log('Alredy exist!!')
+                       }
+                      }
+                    } catch (e){
+                        console.log(e)
+                    }
+                        break
                 default:
                     if (body == 'hello') {
                         ctx.reply('hello')
