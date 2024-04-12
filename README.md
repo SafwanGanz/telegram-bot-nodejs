@@ -12,7 +12,7 @@
 ## 📋 Requirements
 
 >- NodeJS
->- ffmpeg
+>- Python
 ## 📝 Config
 
 Add valid values on config.json
