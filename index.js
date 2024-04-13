@@ -51,7 +51,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     inline_keyboard: buttons
                 }
             });
-            });
+        });
 
         bot.help((ctx) => {
             ctx.reply('/start - For resgiter and access\n/ping\n/activate - Add your group to database\n/setsudo - add sudo user\n/chatid\n/botid\n/groupid\nBot is still devloping stage!!')
@@ -61,9 +61,6 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             const msg_id = ctx.update.callback_query.message.message_id
             const type = ctx.update.callback_query.message.chat.type
             switch (data) {
-                case 'test':
-                    fs.writeFileSync('./data.json', JSON.stringify(ctx, null, 2))
-                    break
                 case 'ping':
                     ctx.reply('Pong 🥳!')
                     await delay(1000)
@@ -236,25 +233,18 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     break;
                 case 'listuser':
                     try {
-                        const users = await new Promise((resolve, reject) => {
-                            member.find({}).toArray((err, users) => {
-                                if (err) {
-                                    console.error('Error occurred while fetching users', err);
-                                    reject(err);
-                                } else {
-                                    resolve(users);
-                                }
-                            });
-                        });
-
-                        const userNames = users.map(user => {
-                            user.username
-                            user.id
-                        }).join('\n');
-                        console.log(userNames);
+                        let data = await member.find({}).toArray()
+                        let total_count = await member.countDocuments()
+                        arr = []
+                        let res = data.forEach(res => {
+                            arr.push(
+                                res._id,
+                                res.username
+                            )
+                        })
+                        ctx.sendMessage('Total users ' + total_count + '\n' + arr.join('\n'))
                     } catch (e) {
-                        console.error('Error occurred', e);
-                        ctx.reply('An error occurred while processing your request');
+                        console.log(e)
                     }
                     break;
                 case 'bc':
