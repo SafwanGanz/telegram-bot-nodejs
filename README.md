@@ -43,6 +43,8 @@ npm start
 ```
 <a href="http://cloud.votion.live" target="blank"><img src="https://img.shields.io/badge/Deploy To Votion-25D366?style=for-the-badge&logo=votion&logoColor=white" /></a>
 [![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/SafwanGanz/telegram-bot-nodejs)
+[![Deploy]
+(https://replit.com/new/github/SafwanGanz/telegram-bot-nodejs])
 
 ## License
 
