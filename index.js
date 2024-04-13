@@ -2,11 +2,12 @@ const { Telegraf, Context } = require('telegraf')
 const { message } = require('telegraf/filters')
 const { useNewReplies } = require("telegraf/future")
 const { verifyToken } = require('./lib/index')
-const { getArgs, getUser, delay, isRegisterGroup, isRegisterMemebr } = require('./lib/function')
+const { getArgs, getUser, delay, isRegisterGroup, isRegisterMemebr, fetch } = require('./lib/function')
 const fs = require('fs')
 let cp = require('child_process')
 let { promisify } = require('util')
 const { createMembersData, member, getMemberData, setting, settings } = require('./lib/db')
+const ytdl = require('ytdl-core')
 const config = require('./config.json')
 
 
@@ -40,18 +41,20 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             } catch (e) {
                 console.log(e)
             }
-            welcome_note += `This is a list of available commands:\n\n/start - Start the bot\n/help - List of commands\n/ping - Check if the bot is online\n\nNote that this bot is still under devlopment and more features will be added soon.`
-            buttons = [
+            welcome_note += `This is a list of available commands:\n\n/start - Start the bot\n/help - List of commands\n/ping - Check if the bot is online\n\nNote that this bot is still under development and more features will be added soon.`;
+            const buttons = [
                 [{ text: 'Add to your group', url: "https://t.me/felixStudyBot?startgroup" }]
-            ]
-            ctx.reply(welcome_note, {
+            ];
+            ctx.sendPhoto(config.IMG_URL, {
+                caption: welcome_note,
                 reply_markup: {
                     inline_keyboard: buttons
                 }
-            })
-        });
+            });
+            });
+
         bot.help((ctx) => {
-     ctx.reply('/start - For resgiter and access\n/ping\n/activate - Add your group to database\n/setsudo - add sudo user\n/chatid\n/botid\n/groupid\nBot is still devloping stage!!')
+            ctx.reply('/start - For resgiter and access\n/ping\n/activate - Add your group to database\n/setsudo - add sudo user\n/chatid\n/botid\n/groupid\nBot is still devloping stage!!')
         });
         bot.on('callback_query', async (ctx) => {
             const data = ctx.update.callback_query.data;
@@ -125,7 +128,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     } catch (e) {
                         console.log(e)
-                    } 
+                    }
                     break
             }
         })
@@ -304,7 +307,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                             { text: 'Disable', callback_data: 'autodl_false' }
                         ],
                         [
-                            { text: 'Leave', callback_data: 'leave'}
+                            { text: 'Leave', callback_data: 'leave' }
                         ]
                     ]
                     ctx.reply('For enable auto downloader click enable or if u want disable click disable', {
@@ -313,21 +316,50 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     })
                     break
-                    case 'activate':
-                        try {
-                      if (ctx.message.chat.type == 'group') {
-                       isTurnOn = await setting.findOne({"_id": ctx.message.chat.id})
-                       if (isTurnOn == null) {
-                        await settings(ctx.message.chat.id)
-                        ctx.reply("Successfully Activated!!")
-                       } else {
-                        // console.log('Alredy exist!!')
-                       }
-                      }
-                    } catch (e){
+                case 'activate':
+                    try {
+                        if (ctx.message.chat.type == 'group') {
+                            isTurnOn = await setting.findOne({ "_id": ctx.message.chat.id })
+                            if (isTurnOn == null) {
+                                await settings(ctx.message.chat.id)
+                                ctx.reply("Successfully Activated!!")
+                            } else {
+                                // console.log('Alredy exist!!')
+                            }
+                        }
+                    } catch (e) {
                         console.log(e)
                     }
-                        break
+                    break
+                case 'deactivate':
+                    try {
+                        if (ctx.message.chat.type == 'group') {
+                            isTurnOn = await setting.findOne({ "_id": ctx.message.chat.id })
+                            if (isTurnOn == null) {
+                                ctx.reply("Not activated yet!!")
+                            } else {
+                                await setting.deleteOne({ "_id": ctx.message.chat.id })
+                                ctx.reply("Successfully deactivated!!")
+                            }
+                        }
+                    } catch (e) {
+                        console.log(e)
+                    }
+                    break
+                case 'ytmp3':
+                case 'ytaudio':
+                    if (args.length == 0) {
+                        ctx.reply('Please provide youtube video link');
+                    } else {
+                        try {
+                            const buffer = await downloadMp3(args[0])
+                            ctx.sendChatAction('upload_voice')
+                            ctx.replyWithAudio(buffer)
+                        } catch (e) {
+                            console.log(e)
+                        }
+                    }
+                    break
                 /* default:
                   const isRegister = isRegisterGroup(ctx.message.chat.id)
                     const isMemebr = isRegisterMemebr(ctx.message.chat.id)
@@ -349,5 +381,34 @@ verifyToken(config.BOT_TOKEN).then((res) => {
         bot.launch()
     }
 })
+
+// Functions 
+
+const stream2buffer = async (stream) => {
+    const chunks = [];
+    return new Promise((resolve, reject) => {
+        stream.on('data', (chunk) => {
+            chunks.push(chunk);
+        });
+        stream.on('end', () => {
+            const buffer = Buffer.concat(chunks);
+
+            resolve(buffer);
+        });
+        stream.on('error', (err) => {
+            reject(err);
+        });
+    });
+};
+
+const downloadMp3 = async (url) => {
+    const stream = ytdl(url, {
+        filter: 'audioonly',
+        quality: 'highestaudio'
+    });
+    const buffer = await stream2buffer(stream);
+    return buffer;
+};
+
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
