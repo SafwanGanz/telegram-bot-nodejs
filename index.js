@@ -2,7 +2,7 @@ const { Telegraf, Context } = require('telegraf')
 const { message } = require('telegraf/filters')
 const { useNewReplies } = require("telegraf/future")
 const { verifyToken } = require('./lib/index')
-const { getArgs, getUser, delay, isRegisterGroup, isRegisterMemebr, fetch } = require('./lib/function')
+const { getArgs, getUser, delay, isRegisteredGroup, isRegisteredMember, fetch } = require('./lib/function')
 const fs = require('fs')
 let cp = require('child_process')
 let { promisify } = require('util')
@@ -336,6 +336,21 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         console.log(e)
                     }
                     break
+                    case 'deleteaccount':
+                        case 'deleteacc':
+                        try {
+                                isTurnOn = await member.findOne({ "_id": ctx.message.chat.id })
+                                if (isTurnOn == null) {
+                                    ctx.reply("Not registered yet!!")
+                                } else {
+                                    await member.deleteOne({ "_id": ctx.message.chat.id })
+                                    ctx.reply("Successfully deleted!!")
+                                }
+                            
+                        } catch (e) {
+                            console.log(e)
+                        }
+                        break
                 case 'ytmp3':
                 case 'ytaudio':
                     if (args.length == 0) {
@@ -364,6 +379,12 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     }
                     break
+                    default:
+                        if (body == 'hi') {
+                            ctx.reply(await isRegisteredMember(ctx.chat.id))
+                        }
+                        
+                        break
             }
         })
         bot.launch()
