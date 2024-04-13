@@ -336,21 +336,21 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         console.log(e)
                     }
                     break
-                    case 'deleteaccount':
-                        case 'deleteacc':
-                        try {
-                                isTurnOn = await member.findOne({ "_id": ctx.message.chat.id })
-                                if (isTurnOn == null) {
-                                    ctx.reply("Not registered yet!!")
-                                } else {
-                                    await member.deleteOne({ "_id": ctx.message.chat.id })
-                                    ctx.reply("Successfully deleted!!")
-                                }
-                            
-                        } catch (e) {
-                            console.log(e)
+                case 'deleteaccount':
+                case 'deleteacc':
+                    try {
+                        isTurnOn = await member.findOne({ "_id": ctx.message.chat.id })
+                        if (isTurnOn == null) {
+                            ctx.reply("Not registered yet!!")
+                        } else {
+                            await member.deleteOne({ "_id": ctx.message.chat.id })
+                            ctx.reply("Successfully deleted!!")
                         }
-                        break
+
+                    } catch (e) {
+                        console.log(e)
+                    }
+                    break
                 case 'ytmp3':
                 case 'ytaudio':
                     if (args.length == 0) {
@@ -379,12 +379,12 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     }
                     break
-                    default:
-                        if (body == 'hi') {
-                            ctx.reply(await isRegisteredMember(ctx.chat.id))
-                        }
-                        
-                        break
+                default:
+                    if (body == 'hi') {
+                        ctx.reply(await isRegisteredMember(ctx.chat.id))
+                    }
+
+                    break
             }
         })
         bot.launch()
