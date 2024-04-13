@@ -68,8 +68,8 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     break
                 case 'settings':
                     const buttons = [
-                        { text: 'Back', callback_data: 'back' },
-                        { text: 'Next', callback_data: 'next ' }
+                        { text: 'Back', callback_data: `bcack_setiings` },
+                        { text: 'Next', callback_data: `next_settings` }
                     ]
                     setting_note = `Settings are a crucial part of the bot's functionality and behavior. They govern how the bot interacts wuth users and the environment. it's the owner's responsibility to manage these settings with care to ensure the bot operates as intended.`
                     ctx.reply(setting_note, {
@@ -350,22 +350,20 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     }
                     break
-                /* default:
-                  const isRegister = isRegisterGroup(ctx.message.chat.id)
-                    const isMemebr = isRegisterMemebr(ctx.message.chat.id)
-                    try {
-                  if (isRegister == true || isMemebr == true) {
-                if (/^https?:\/\/.*youtu/i.test(body)) {
-                 
-                }
-            }
-                    } catch (e) {
-
+                case 'ytmp4':
+                case 'ytvideo':
+                    if (args.length == 0) {
+                        ctx.reply('Please provide youtube video link');
+                    } else {
+                        try {
+                            const buffer = await downloadMp4(args[0])
+                            ctx.sendChatAction('upload_video')
+                            ctx.replyWithVideo(buffer)
+                        } catch (e) {
+                            console.log(e)
+                        }
                     }
-                  
                     break
-                    */
-
             }
         })
         bot.launch()
@@ -399,6 +397,15 @@ const downloadMp3 = async (url) => {
     const buffer = await stream2buffer(stream);
     return buffer;
 };
+
+const downloadMp4 = async (url) => {
+    const stream = ytdl(url, {
+        filter: 'videoandaudio',
+        quality: 'highest'
+    });
+    const buffer = await stream2buffer(stream);
+    return buffer;
+}
 
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
