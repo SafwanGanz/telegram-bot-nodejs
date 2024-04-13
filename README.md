@@ -24,6 +24,7 @@ Add valid values on config.json
     "OWNER_ID": "Put owner chat id",
     "MONGO_URL": "put mongoDB Url",
     "SUDO": "(if u want) add chat id of sudo user",
+    "IMG_URL": "Image url",
     "MOVIE_DB_CHANNEL_ID": ""
 }
 ```
