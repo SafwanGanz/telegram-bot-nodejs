@@ -314,7 +314,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                                 await settings(ctx.message.chat.id)
                                 ctx.reply("Successfully Activated!!")
                             } else {
-                                // console.log('Alredy exist!!')
+                                ctx.reply('Alredy activated')
                             }
                         }
                     } catch (e) {
@@ -380,8 +380,20 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     }
                     break
                 default:
-                    if (body == 'hi') {
-                        ctx.reply(await isRegisteredMember(ctx.chat.id))
+                    if (ctx.chat.type == 'group') {
+                        isOn = await isRegisteredGroup(ctx.chat.id)
+                        if (isOn == true) {
+                            if (body == 'hello') {
+                                ctx.reply('Hellooo!')
+                            }
+                        }
+                    } else {
+                        isOn = await isRegisteredMember(ctx.chat.id)
+                        if (isOn == true) {
+                            if (body == 'hello') {
+                                ctx.reply('hai')
+                            }
+                        }
                     }
 
                     break
