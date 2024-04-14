@@ -2,11 +2,11 @@ const { Telegraf, Context } = require('telegraf')
 const { message } = require('telegraf/filters')
 const { useNewReplies } = require("telegraf/future")
 const { verifyToken } = require('./lib/index')
-const { getArgs, getUser, delay, isRegisteredGroup, isRegisteredMember, fetch } = require('./lib/function')
+const { getArgs, getUser, delay, isRegisteredGroup, isRegisteredMember, fetch, getMemberData, getGroupData } = require('./lib/function')
 const fs = require('fs')
 let cp = require('child_process')
 let { promisify } = require('util')
-const { createMembersData, member, getMemberData, setting, settings } = require('./lib/db')
+const { createMembersData, member, setting, settings } = require('./lib/db')
 const ytdl = require('ytdl-core')
 const config = require('./config.json')
 
@@ -80,6 +80,52 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     break
                 case 'leave':
                     ctx.deleteMessage(ctx.update.callback_query.message.message_id)
+                    break
+                case 'gpt_true':
+                    isGroup = await isRegisteredGroup(ctx.update.callback_query.message.chat.id)
+                    isMember = await isRegisteredMember(ctx.update.callback_query.message.chat.id)
+                    if (isGroup == true || isMember == true) {
+                        if (type == 'group') {
+                            await setting.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { gpt: true } })
+                            ctx.reply('Successfully enabled!!')
+                            await delay(1000)
+                            ctx.deleteMessage(ctx.update.callback_query.message.message_id)
+                        } else {
+                            await member.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { gpt: true } })
+                            ctx.reply('Successfully enabled!!')
+                            await delay(1000)
+                            ctx.deleteMessage(ctx.update.callback_query.message.message_id)
+                        }
+                    } else {
+                        if (type == 'group') {
+                            ctx.reply('Group is not found in our database\nPlease activate using /activate')
+                        } else {
+                            ctx.reply('You are not found in our database\nPlease activate using /start')
+                        }
+                    }
+                    break
+                case 'gpt_false':
+                    isGroup = await isRegisteredGroup(ctx.update.callback_query.message.chat.id)
+                    isMember = await isRegisteredMember(ctx.update.callback_query.message.chat.id)
+                    if (isGroup == true || isMember == true) {
+                        if (type == 'group') {
+                            await setting.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { gpt: false } })
+                            ctx.reply('Successfully disabled!!')
+                            await delay(1000)
+                            ctx.deleteMessage(ctx.update.callback_query.message.message_id)
+                        } else {
+                            await member.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { gpt: false } })
+                            ctx.reply('Successfully disabled!!')
+                            await delay(1000)
+                            ctx.deleteMessage(ctx.update.callback_query.message.message_id)
+                        }
+                    } else {
+                        if (type == 'group') {
+                            ctx.reply('Group is not found in our database\nPlease activate using /activate')
+                        } else {
+                            ctx.reply('You are not found in our database\nPlease activate using /start')
+                        }
+                    }
                     break
                 case 'autodl_true':
                     try {
@@ -306,6 +352,19 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     })
                     break
+                case 'auto_gpt':
+                    button = [
+                        [
+                            { text: 'Enable', callback_data: 'gpt_true' },
+                            { text: 'Disable', callback_data: 'gpt_false' }
+                        ]
+                    ]
+                    ctx.reply('For enable auto downloader click enable or if u want disable click disable', {
+                        reply_markup: {
+                            inline_keyboard: button
+                        }
+                    })
+                    break
                 case 'activate':
                     try {
                         if (ctx.message.chat.type == 'group') {
@@ -381,21 +440,30 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     break
                 default:
                     if (ctx.chat.type == 'group') {
-                        isOn = await isRegisteredGroup(ctx.chat.id)
-                        if (isOn == true) {
-                            if (body == 'hello') {
-                                ctx.reply('Hellooo!')
+                        if (body == 'gpt') {
+                            isOn = await isRegisteredGroup(ctx.chat.id)
+                            if (isOn == true) {
+                                isOn = await getGroupData(ctx.chat.id);
+                                if (isOn.gpt == true) {
+                                    ctx.reply('GPT is enabled')
+                                } else {
+                                    ctx.reply('GPT is disabled')
+                                }
                             }
                         }
                     } else {
-                        isOn = await isRegisteredMember(ctx.chat.id)
-                        if (isOn == true) {
-                            if (body == 'hello') {
-                                ctx.reply('hai')
+                        if (body == 'gpt') {
+                            isOn = await isRegisteredMember(ctx.chat.id)
+                            if (isOn == true) {
+                                isOn = await getMemberData(ctx.chat.id);
+                                if (isOn.gpt == true) {
+                                    ctx.reply('GPT is enabled')
+                                } else {
+                                    ctx.reply('GPT is disabled')
+                                }
                             }
                         }
                     }
-
                     break
             }
         })
