@@ -25,18 +25,22 @@ WHITE='\033[1;37m'
 echo -e "${YELLOW}Starting..."
 clear
 
-echo -e "${ORANGE}Installing NodeJs..."
+echo -e "${GREEN}Installing NodeJs..."
 apt install -y nodejs
 
-echo -e "${ORANGE}Installing Npm..."
+echo -e "${GREEN}Installing Npm..."
 apt install -y npm
 
-echo -e "${ORANGE}Installing Python..."
+echo -e "${GREEN}Installing Python..."
 apt install -y python
 
-echo -e "${ORANGE}Installing Node Modules..."
+echo -e "${GREEN}Installing Node Modules..."
 npm install 
 
+echo -e "${GREEN}Install Nodemon"
+npm install nodemon -g
+
 echo -e "${RED}If You're Not Added valid values in config.json Please add"
+
 echo -e "${GREEN}Starting..."
 npm start
