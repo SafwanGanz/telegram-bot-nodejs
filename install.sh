@@ -37,7 +37,7 @@ apt install -y python
 echo -e "${GREEN}Installing Node Modules..."
 npm install 
 
-echo -e "${GREEN}Install Nodemon"
+echo -e "${GREEN}Installing Nodemon..."
 npm install nodemon -g
 
 echo -e "${RED}If You're Not Added valid values in config.json Please add"
