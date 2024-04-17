@@ -479,20 +479,24 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                             if (isOn == true) {
                                 isOn = await getGroupData(ctx.chat.id);
                                 if (isOn.gpt == true) {
-                                    const openai = new OpenAI({apiKey: config.GPT_KEY});
-
-                                    async function main() {
-                                        const stream = await openai.chat.completions.create({
-                                            model: 'gpt-3.5-turbo',
-                                            messages: [{ role: 'user', content: body }],
-                                            stream: true,
-                                        });
-                                        for await (const chunk of stream) {
-                                            ctx.reply(chunk.choices[0]?.delta?.content || '');
+                                    const openai = new OpenAI({ apiKey: config.GPT_KEY });
+                                    try {
+                                        async function main() {
+                                            const stream = await openai.chat.completions.create({
+                                                model: 'gpt-3.5-turbo',
+                                                messages: [{ role: 'user', content: body }],
+                                                stream: true,
+                                            });
+                                            for await (const chunk of stream) {
+                                                ctx.reply(chunk.choices[0]?.delta?.content || '');
+                                            }
                                         }
-                                    }
 
-                                    main();
+                                        main();
+                                    } catch (e) {
+                                        console.log(e)
+                                        ctx.reply('Error while processing')
+                                    }
                                 } else {
                                     // Not activated yet!!
                                 }
@@ -504,21 +508,25 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                             if (isOn == true) {
                                 isOn = await getMemberData(ctx.chat.id);
                                 if (isOn.gpt == true) {
-                                    await chatGpt(body)
-                                    const openai = new OpenAI({apiKey: config.GPT_KEY});
+                                    try {
+                                        const openai = new OpenAI({ apiKey: config.GPT_KEY });
 
-                                    async function main() {
-                                        const stream = await openai.chat.completions.create({
-                                            model: 'gpt-3.5-turbo',
-                                            messages: [{ role: 'user', content: body }],
-                                            stream: true,
-                                        });
-                                        for await (const chunk of stream) {
-                                            ctx.reply(chunk.choices[0]?.delta?.content || '');
+                                        async function main() {
+                                            const stream = await openai.chat.completions.create({
+                                                model: 'gpt-3.5-turbo',
+                                                messages: [{ role: 'user', content: body }],
+                                                stream: true,
+                                            });
+                                            for await (const chunk of stream) {
+                                                ctx.reply(chunk.choices[0]?.delta?.content || '');
+                                            }
                                         }
-                                    }
 
-                                    main();
+                                        main();
+                                    } catch (e) {
+                                        console.log(e)
+                                        ctx.reply('Error while processing')
+                                    }
                                 } else {
                                     // not activated yet!!
                                 }
