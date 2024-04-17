@@ -2,16 +2,14 @@ const { Telegraf, Context } = require('telegraf')
 const { message } = require('telegraf/filters')
 const { useNewReplies } = require("telegraf/future")
 const { verifyToken } = require('./lib/index')
+const config = require('./config.json')
 const { getArgs, getUser, delay, isRegisteredGroup, isRegisteredMember, fetch, getMemberData, getGroupData } = require('./lib/function')
 const fs = require('fs')
 let cp = require('child_process')
 let { promisify } = require('util')
 const { createMembersData, member, setting, settings } = require('./lib/db')
 const ytdl = require('ytdl-core')
-const config = require('./config.json')
-
-
-
+const OpenAI = require('openai')
 if (config.BOT_TOKEN == "") {
     console.log("Pleas Add Your Bot token in config.json")
 }
@@ -24,6 +22,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
         console.log("Connecting...");
         const bot = new Telegraf(config.BOT_TOKEN)
         console.log('connected')
+
         bot.use(useNewReplies());
         bot.telegram.setMyCommands([
             { command: "/start", description: "Start Command" },
@@ -230,6 +229,18 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             else if (isDocument) typeMessage = "Document";
             else if (isAnimation) typeMessage = "Animation";
 
+            logFunction(isGroup, isCmd, typeMessage, user, groupName);
+            var file_id = "";
+            file_id = newFunction(
+                isQuoted,
+                file_id,
+                isQuotedImage,
+                isQuotedVideo,
+                isQuotedAudio,
+                isQuotedDocument,
+                isQuotedAnimation
+            );
+
             switch (command) {
                 case "ping":
                     ctx.reply("pong");
@@ -278,19 +289,20 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     }
                     break;
                 case 'listuser':
-                    try {
-                        let data = await member.find({}).toArray()
-                        let total_count = await member.countDocuments()
-                        arr = []
-                        let res = data.forEach(res => {
-                            arr.push(
-                                res._id,
-                                res.username
-                            )
-                        })
-                        ctx.sendMessage('Total users ' + total_count + '\n' + arr.join('\n'))
-                    } catch (e) {
-                        console.log(e)
+                    if (isOwner == ctx.message.chat.id) {
+                        try {
+                            let data = await member.find({}).toArray()
+                            let total_count = await member.countDocuments()
+                            arr = []
+                            let res = data.forEach(res => {
+                                arr.push(JSON.stringify(res, null, 2))
+                            })
+                            ctx.sendMessage('Total users ' + total_count + '\n' + arr.join('\n'))
+                        } catch (e) {
+                            console.log(e)
+                        }
+                    } else {
+                        ctx.reply('Only owner can use this command')
                     }
                     break;
                 case 'bc':
@@ -438,6 +450,28 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     }
                     break
+                case 'profile':
+                    var pp_user = await getPhotoProfile(ctx.message.from.id);
+                    reg = await isRegisteredMember(ctx.message.from.id)
+                    if (reg == true) {
+                        data = await getMemberData(ctx.message.from.id)
+                        ctx.replyWithPhoto(pp_user, {
+                            caption: `Username: ${data.username}\nID: ${data._id}\nSudo: ${data.isSudo}\n`
+                        })
+                    } else {
+                        ctx.reply('You are not found in our database\nPlease activate using /start')
+                    }
+                    break
+                case 'groups':
+                    if (isOwner == ctx.message.from.id) {
+                        data = await setting.find({}).toArray()
+                        let arr = []
+                        data.forEach(res => {
+                            arr.push(res._id)
+                        })
+                        ctx.reply('Total groups ' + arr.length + '\n\n' + arr.join('\n'))
+                    }
+                    break
                 default:
                     if (ctx.chat.type == 'group') {
                         if (body == 'gpt') {
@@ -445,9 +479,22 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                             if (isOn == true) {
                                 isOn = await getGroupData(ctx.chat.id);
                                 if (isOn.gpt == true) {
-                                    ctx.reply('GPT is enabled')
+                                    const openai = new OpenAI({apiKey: config.GPT_KEY});
+
+                                    async function main() {
+                                        const stream = await openai.chat.completions.create({
+                                            model: 'gpt-3.5-turbo',
+                                            messages: [{ role: 'user', content: body }],
+                                            stream: true,
+                                        });
+                                        for await (const chunk of stream) {
+                                            ctx.reply(chunk.choices[0]?.delta?.content || '');
+                                        }
+                                    }
+
+                                    main();
                                 } else {
-                                    ctx.reply('GPT is disabled')
+                                    // Not activated yet!!
                                 }
                             }
                         }
@@ -457,9 +504,23 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                             if (isOn == true) {
                                 isOn = await getMemberData(ctx.chat.id);
                                 if (isOn.gpt == true) {
-                                    ctx.reply('GPT is enabled')
+                                    await chatGpt(body)
+                                    const openai = new OpenAI({apiKey: config.GPT_KEY});
+
+                                    async function main() {
+                                        const stream = await openai.chat.completions.create({
+                                            model: 'gpt-3.5-turbo',
+                                            messages: [{ role: 'user', content: body }],
+                                            stream: true,
+                                        });
+                                        for await (const chunk of stream) {
+                                            ctx.reply(chunk.choices[0]?.delta?.content || '');
+                                        }
+                                    }
+
+                                    main();
                                 } else {
-                                    ctx.reply('GPT is disabled')
+                                    // not activated yet!!
                                 }
                             }
                         }
@@ -472,6 +533,71 @@ verifyToken(config.BOT_TOKEN).then((res) => {
 })
 
 // Functions 
+function logFunction(isGroup, isCmd, typeMessage, user, groupName) {
+    if (!isGroup && !isCmd)
+        console.log(
+            ("├"),
+            ("[ PRIVATE ]"),
+            (typeMessage),
+            ("from"),
+            (user.full_name)
+        );
+    if (isGroup && !isCmd)
+        console.log(
+            ("├"),
+            ("[  GROUP  ]"),
+            (typeMessage),
+            ("from"),
+            (user.full_name),
+            ("in"),
+            (groupName)
+        );
+    if (!isGroup && isCmd)
+        console.log(
+            ("├"),
+            ("[ COMMAND ]"),
+            (typeMessage),
+            ("from"),
+            (user.full_name)
+        );
+    if (isGroup && isCmd)
+        console.log(
+            ("├"),
+            ("[ COMMAND ]"),
+            (typeMessage),
+            ("from"),
+            (user.full_name),
+            ("in"),
+            (groupName)
+        );
+}
+
+function newFunction(
+    isQuoted,
+    file_id,
+    isQuotedImage,
+    isQuotedVideo,
+    isQuotedAudio,
+    isQuotedDocument,
+    isQuotedAnimation
+) {
+    if (isQuoted) {
+        file_id = isQuotedImage
+            ? ctx.message.reply_to_message.photo[
+                ctx.message.reply_to_message.photo.length - 1
+            ].file_id
+            : isQuotedVideo
+                ? ctx.message.reply_to_message.video.file_id
+                : isQuotedAudio
+                    ? ctx.message.reply_to_message.audio.file_id
+                    : isQuotedDocument
+                        ? ctx.message.reply_to_message.document.file_id
+                        : isQuotedAnimation
+                            ? ctx.message.reply_to_message.animation.file_id
+                            : "";
+    }
+    return file_id;
+}
 
 const stream2buffer = async (stream) => {
     const chunks = [];
@@ -508,5 +634,31 @@ const downloadMp4 = async (url) => {
     return buffer;
 }
 
+async function getLink(file_id) {
+    try {
+        return (await bot.telegram.getFileLink(file_id)).href;
+    } catch {
+        throw "Error while get url";
+    }
+}
+
+async function getPhotoProfile(id) {
+    try {
+        var url_default =
+            "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png";
+        if (String(id).startsWith("-100")) {
+            var pp = await bot.telegram.getChat(id);
+            if (!pp.hasOwnProperty("photo")) return url_default;
+            var file_id = pp.photo.big_file_id;
+        } else {
+            var pp = await bot.telegram.getUserProfilePhotos(id);
+            if (pp.total_count == 0) return url_default;
+            var file_id = pp.photos[0][2].file_id;
+        }
+        return await getLink(file_id);
+    } catch (e) {
+        throw e;
+    }
+}
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
