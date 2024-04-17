@@ -3,6 +3,8 @@
     "PREFIX": "/",
     "OWNER_ID": "",
     "MONGO_URL": "",
+    "GPT_KEY": "",
     "SUDO": "",
+    "IMG_URL": "https://graph.org/file/4bcd9db2c13daa2929d9c.jpg",
     "MOVIE_DB_CHANNEL_ID": ""
 }
