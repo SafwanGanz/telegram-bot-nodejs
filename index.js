@@ -10,6 +10,7 @@ let { promisify } = require('util')
 const { createMembersData, member, setting, settings } = require('./lib/db')
 const ytdl = require('ytdl-core')
 const OpenAI = require('openai')
+const { button } = require('telegraf/markup')
 if (config.BOT_TOKEN == "") {
     console.log("Pleas Add Your Bot token in config.json")
 }
@@ -28,6 +29,38 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             { command: "/start", description: "Start Command" },
             { command: "/help", description: "Commands List" }
         ]);
+        bot.on("new_chat_members", async (ctx) => {
+            var message = ctx.message;
+            var groupname = message.chat.title;
+            for (const x of message.new_chat_members) {
+                var pp_user = await getPhotoProfile(x.id);
+                var full_name = getUser(x).full_name;
+                console.log(
+                    ("├"),
+                    ("[  JOINS  ]"),
+                    (full_name),
+                    ("join in"),
+                    (groupname)
+                );
+                let isGroup = await isRegisteredGroup(ctx.message.chat.id)
+                if (isGroup == true) {
+                    let isOn = await getGroupData(ctx.message.chat.id);
+                    if (isOn.welcome == true) {
+                        const button = [
+                            [{ text: 'Chat!', url: "https://t.me/felixStudyBot?text=/start" }]
+                        ]
+                        ctx.reply(`Hai ${full_name} Welcome to ${groupname}`, {
+                            reply_markup: {
+                                inline_keyboard: button
+                            }
+                        })
+                    }
+                } else {
+                    // welcome message is disabled
+
+                }
+            }
+        });
         bot.start(async (ctx) => {
             welcome_note = `Hai ${ctx.message.from.first_name}\n\n`
             try {
@@ -172,6 +205,29 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         console.log(e)
                     }
                     break
+                case 'welcome_true':
+                    isGroup = await isRegisteredGroup(ctx.update.callback_query.message.chat.id)
+                    if (isGroup == true) {
+                        await setting.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { welcome: true } })
+                        ctx.reply('Successfully enabled!!')
+                        await delay(1000)
+                        ctx.deleteMessage(ctx.update.callback_query.message.message_id)
+                    } else {
+                        ctx.reply('Group is not found in our database\nPlease activate using /activate')
+                    }
+                    break
+                case 'welcome_false':
+                    isGroup = await isRegisteredGroup(ctx.update.callback_query.message.chat.id)
+                    if (isGroup == true) {
+                        await setting.updateOne({ _id: ctx.update.callback_query.message.chat.id }, { $set: { welcome: false } })
+                        ctx.reply('Successfully disabled!!')
+                        await delay(1000)
+                        ctx.deleteMessage(ctx.update.callback_query.message.message_id)
+                    } else {
+                        ctx.reply('Group is not found in our database\nPlease activate using /activate')
+                    }
+                    break
+
             }
         })
         bot.on("message", async (ctx) => {
@@ -364,6 +420,24 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     })
                     break
+                case 'welcome':
+                    let isGroup = await isRegisteredGroup(ctx.message.chat.id)
+                    if (isGroup == false) {
+                        ctx.reply('Group is not found in our database\nPlease activate using /activate')
+                    } else {
+                        let button = [
+                            [
+                                { text: 'Enable', callback_data: 'welcome_true' },
+                                { text: 'Disable', callback_data: 'welcome_false' }
+                            ]
+                        ]
+                        ctx.reply('For enable welcome message click enable or if u want disable click disable', {
+                            reply_markup: {
+                                inline_keyboard: button
+                            }
+                        })
+                    }
+                    break
                 case 'auto_gpt':
                     button = [
                         [
@@ -537,6 +611,35 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             }
         })
         bot.launch()
+        console.log('Bot is running')
+// main functions
+
+        async function getLink(file_id) {
+            try {
+                return (await bot.telegram.getFileLink(file_id)).href;
+            } catch {
+                throw "Error while get url";
+            }
+        }
+
+        async function getPhotoProfile(id) {
+            try {
+                var url_default =
+                    "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png";
+                if (String(id).startsWith("-100")) {
+                    var pp = await bot.telegram.getChat(id);
+                    if (!pp.hasOwnProperty("photo")) return url_default;
+                    var file_id = pp.photo.big_file_id;
+                } else {
+                    var pp = await bot.telegram.getUserProfilePhotos(id);
+                    if (pp.total_count == 0) return url_default;
+                    var file_id = pp.photos[0][2].file_id;
+                }
+                return await getLink(file_id);
+            } catch (e) {
+                throw e;
+            }
+        }
     }
 })
 
@@ -642,31 +745,5 @@ const downloadMp4 = async (url) => {
     return buffer;
 }
 
-async function getLink(file_id) {
-    try {
-        return (await bot.telegram.getFileLink(file_id)).href;
-    } catch {
-        throw "Error while get url";
-    }
-}
-
-async function getPhotoProfile(id) {
-    try {
-        var url_default =
-            "https://cdn.pixabay.com/photo/2015/10/05/22/37/blank-profile-picture-973460_960_720.png";
-        if (String(id).startsWith("-100")) {
-            var pp = await bot.telegram.getChat(id);
-            if (!pp.hasOwnProperty("photo")) return url_default;
-            var file_id = pp.photo.big_file_id;
-        } else {
-            var pp = await bot.telegram.getUserProfilePhotos(id);
-            if (pp.total_count == 0) return url_default;
-            var file_id = pp.photos[0][2].file_id;
-        }
-        return await getLink(file_id);
-    } catch (e) {
-        throw e;
-    }
-}
 process.once('SIGINT', () => bot.stop('SIGINT'))
 process.once('SIGTERM', () => bot.stop('SIGTERM'))
