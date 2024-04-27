@@ -30,8 +30,10 @@
   "homepage": "https://github.com/SafwanGanz/tg_movie_filter_bot#readme",
   "dependencies": {
     "axios": "^1.6.8",
+    "canvas": "^2.11.2",
     "chalk": "^4.1.2",
     "child_process": "^1.0.2",
+    "image-to-pdf": "^2.0.0",
     "moment-timezone": "^0.5.45",
     "mongodb": "^6.5.0",
     "node-fetch": "^3.3.2",
