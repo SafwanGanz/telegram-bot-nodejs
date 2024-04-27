@@ -29,6 +29,7 @@ const {
 const ytdl = require('ytdl-core')
 const OpenAI = require('openai')
 const { button } = require('telegraf/markup')
+const { type } = require('os')
 if (config.BOT_TOKEN == "") {
     console.log("Pleas Add Your Bot token in config.json")
 }
@@ -57,9 +58,11 @@ verifyToken(config.BOT_TOKEN).then((res) => {
 
                 generate.setName(full_name);
                 generate.setGroupname(groupname);
+                generate.setBackground('https://graph.org/file/267aaef82bff2e2cca3ef.jpg');
                 generate.setPpimg(pp_user);
 
                 const buffer = await generate.welcome();
+
                 console.log(
                     ("├"),
                     ("[  JOINS  ]"),
@@ -387,6 +390,68 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                 case 'groupid':
                     ctx.reply('group id: ' + ctx.chat.id);
                     break;
+                case 'warn':
+                    try {
+                        if (ctx.chat.type == 'private') {
+                            ctx.reply('This command only works in a group');
+                        } else if (!isAdmin) {
+                            ctx.reply('Only admins can use this command');
+                        } else {
+                            if (!ctx.message.reply_to_message) {
+                                ctx.reply('Please reply to a message to warn a user');
+                            } else {
+                                let user = ctx.message.reply_to_message.from;
+                                let data = await member.findOne({ _id: user.id });
+
+                                if (data === null) {
+                                    await createMembersData(user.id, user.first_name);
+                                }
+
+                                data = await member.findOne({ _id: user.id });
+                                if (data.warn >= 3) {
+                                    await bot.telegram.kickChatMember(ctx.chat.id, user.id);
+                                    ctx.reply('User has been kicked');
+                                    await member.updateOne({ _id: user.id }, { $set: { warn: 0 } });
+                                } else {
+                                    await member.updateOne({ _id: user.id }, { $inc: { warn: 1 } });
+                                    data = await member.findOne({ _id: user.id });
+                                    ctx.reply('User has been warned ' + data.warn + ' times' + '\n\nIf the user reaches 3 warnings, they will be kicked from the group');
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        console.error('Error occurred:', e);
+                        ctx.reply('An error occurred while processing your request');
+                    }
+                    break
+                case 'ban':
+                    try {
+                        if (isGroup && isAdmin) {
+                            if (!ctx.message.reply_to_message) {
+                                ctx.reply('Please tag a user to kick');
+                            } else {
+                                await bot.telegram.kickChatMember(ctx.chat.id, ctx.message.reply_to_message.from.id)
+                                ctx.reply('User has been kicked')
+                            }
+                        }
+                    } catch (e) {
+                        ctx.reply('Error while kicking user')
+                    }
+                    break;
+                case 'add':
+                    try {
+                        if (isGroup && isAdmin) {
+                            if (!ctx.message.reply_to_message) {
+                                ctx.reply('Please tag a user to add')
+                            } else {
+                                await bot.telegram.unbanChatMember(ctx.chat.id, ctx.message.reply_to_message.from.id)
+                                ctx.reply('User has been added')
+                            }
+                        }
+                    } catch (e) {
+                        ctx.reply('Error while adding user')
+                    }
+                    break;
                 case 'movie':
                     if (args.length == 0) {
                         ctx.reply('please provide movie name');
@@ -689,6 +754,8 @@ verifyToken(config.BOT_TOKEN).then((res) => {
         })
         bot.launch()
         console.log('Bot is running')
+        process.once('SIGINT', () => bot.stop('SIGINT'))
+        process.once('SIGTERM', () => bot.stop('SIGTERM'))
 
         // main functions
 
@@ -796,6 +863,3 @@ const downloadMp4 = async (url) => {
     const buffer = await stream2buffer(stream);
     return buffer;
 }
-
-process.once('SIGINT', () => bot.stop('SIGINT'))
-process.once('SIGTERM', () => bot.stop('SIGTERM'))
