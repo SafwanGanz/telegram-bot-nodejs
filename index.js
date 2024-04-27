@@ -3,18 +3,36 @@ const { message } = require('telegraf/filters')
 const { useNewReplies } = require("telegraf/future")
 const { verifyToken } = require('./lib/index')
 const config = require('./config.json')
-const { getArgs, getUser, delay, isRegisteredGroup, isRegisteredMember, fetch, getMemberData, getGroupData } = require('./lib/function')
+const imgToPDF = require('image-to-pdf')
+const {
+    getArgs,
+    getUser,
+    delay,
+    isRegisteredGroup,
+    isRegisteredMember,
+    fetch,
+    getMemberData,
+    getGroupData,
+    getGroupType,
+    getAdmin
+} = require('./lib/function')
+const Canva = require('./lib/canvas')
 const fs = require('fs')
 let cp = require('child_process')
 let { promisify } = require('util')
-const { createMembersData, member, setting, settings } = require('./lib/db')
+const {
+    createMembersData,
+    member,
+    setting,
+    settings
+} = require('./lib/db')
 const ytdl = require('ytdl-core')
 const OpenAI = require('openai')
 const { button } = require('telegraf/markup')
 if (config.BOT_TOKEN == "") {
     console.log("Pleas Add Your Bot token in config.json")
 }
-const isOwner = config.OWNER_ID
+
 verifyToken(config.BOT_TOKEN).then((res) => {
     if (!res) {
         console.log("Invalid Bot Token");
@@ -35,6 +53,13 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             for (const x of message.new_chat_members) {
                 var pp_user = await getPhotoProfile(x.id);
                 var full_name = getUser(x).full_name;
+                const generate = new Canva();
+
+                generate.setName(full_name);
+                generate.setGroupname(groupname);
+                generate.setPpimg(pp_user);
+
+                const buffer = await generate.welcome();
                 console.log(
                     ("├"),
                     ("[  JOINS  ]"),
@@ -42,18 +67,19 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     ("join in"),
                     (groupname)
                 );
-                let isGroup = await isRegisteredGroup(ctx.message.chat.id)
+                isGroup = await isRegisteredGroup(ctx.message.chat.id)
                 if (isGroup == true) {
                     let isOn = await getGroupData(ctx.message.chat.id);
                     if (isOn.welcome == true) {
                         const button = [
                             [{ text: 'Chat!', url: "https://t.me/felixStudyBot?text=/start" }]
                         ]
-                        ctx.reply(`Hai ${full_name} Welcome to ${groupname}`, {
-                            reply_markup: {
-                                inline_keyboard: button
-                            }
-                        })
+                        ctx.replyWithPhoto({ source: buffer }
+                            , {
+                                caption: `Hai ${full_name} Welcome to ${groupname}`, reply_markup: {
+                                    inline_keyboard: button
+                                }
+                            })
                     }
                 } else {
                     // welcome message is disabled
@@ -73,7 +99,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             } catch (e) {
                 console.log(e)
             }
-            welcome_note += `This is a list of available commands:\n\n/start - Start the bot\n/help - List of commands\n/ping - Check if the bot is online\n\nNote that this bot is still under development and more features will be added soon.`;
+            welcome_note += `/start - Start the bot\n/help - List of commands\n/ping - Check if the bot is online\n\nNote that this bot is still under development and more features will be added soon.`;
             const buttons = [
                 [{ text: 'Add to your group', url: "https://t.me/felixStudyBot?startgroup" }]
             ];
@@ -86,7 +112,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
         });
 
         bot.help((ctx) => {
-            ctx.reply('/start - For resgiter and access\n/ping\n/activate - Add your group to database\n/setsudo - add sudo user\n/chatid\n/botid\n/groupid\nBot is still devloping stage!!')
+            ctx.reply('/start - Start the bot\n/groupmenu\n/privatemenu\n/adminmenu\n\nNote that this bot is still under development and more features will be added soon.')
         });
         bot.on('callback_query', async (ctx) => {
             const data = ctx.update.callback_query.data;
@@ -238,14 +264,14 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                 cmd = true;
                 comm = body.slice(1).trim().split(" ").shift().toLowerCase();
             }
-
+            const isAdmin = await getAdmin(ctx, ctx.message.chat.type, ctx.message.chat.id, ctx.message.from.id)
+            const isOwner = await config.OWNER_ID.includes(ctx.message.from.id)
             const command = comm;
             const args = await getArgs(ctx);
             const user = getUser(ctx.message.from);
             const isCmd = cmd;
-            const isGroup = ctx.chat.type.includes("group");
-            const groupName = isGroup ? ctx.chat.title : "";
-
+            const group = await getGroupType(ctx.chat.type)
+            const groupName = group ? ctx.chat.title : "";
             const isImage = ctx.message.hasOwnProperty("photo");
             const isVideo = ctx.message.hasOwnProperty("video");
             const isAudio = ctx.message.hasOwnProperty("audio");
@@ -284,10 +310,35 @@ verifyToken(config.BOT_TOKEN).then((res) => {
             else if (isLocation) typeMessage = "Location";
             else if (isDocument) typeMessage = "Document";
             else if (isAnimation) typeMessage = "Animation";
-
-            logFunction(isGroup, isCmd, typeMessage, user, groupName);
+            function quoted(
+                isQuoted,
+                file_id,
+                isQuotedImage,
+                isQuotedVideo,
+                isQuotedAudio,
+                isQuotedDocument,
+                isQuotedAnimation
+            ) {
+                if (isQuoted) {
+                    file_id = isQuotedImage
+                        ? ctx.message.reply_to_message.photo[
+                            ctx.message.reply_to_message.photo.length - 1
+                        ].file_id
+                        : isQuotedVideo
+                            ? ctx.message.reply_to_message.video.file_id
+                            : isQuotedAudio
+                                ? ctx.message.reply_to_message.audio.file_id
+                                : isQuotedDocument
+                                    ? ctx.message.reply_to_message.document.file_id
+                                    : isQuotedAnimation
+                                        ? ctx.message.reply_to_message.animation.file_id
+                                        : "";
+                }
+                return file_id;
+            }
+            logFunction(group, isCmd, typeMessage, user, groupName);
             var file_id = "";
-            file_id = newFunction(
+            file_id = quoted(
                 isQuoted,
                 file_id,
                 isQuotedImage,
@@ -302,7 +353,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     ctx.reply("pong");
                     break;
                 case "setsudo":
-                    if (isOwner == ctx.message.chat.id) {
+                    if (isOwner) {
                         if (args) {
                             try {
                                 db = await member.findOne({ "_id": args[0] });
@@ -345,7 +396,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     }
                     break;
                 case 'listuser':
-                    if (isOwner == ctx.message.chat.id) {
+                    if (isOwner) {
                         try {
                             let data = await member.find({}).toArray()
                             let total_count = await member.countDocuments()
@@ -375,7 +426,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     }
                     break
                 case 'quote':
-                    if (isQuoted && isGroup) {
+                    if (isQuoted && group) {
                         quote = ctx.message.reply_to_message;
                         await ctx.reply(JSON.stringify(quote, null, 2));
                     } else {
@@ -383,7 +434,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     }
                     break;
                 case 'speed':
-                    if (isOwner == ctx.message.chat.id) {
+                    if (isOwner) {
                         let exec = promisify(cp.exec).bind(cp);
                         ctx.reply(`Running speed-test...`);
                         let o;
@@ -421,7 +472,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     })
                     break
                 case 'welcome':
-                    let isGroup = await isRegisteredGroup(ctx.message.chat.id)
+                    isGroup = await isRegisteredGroup(ctx.message.chat.id)
                     if (isGroup == false) {
                         ctx.reply('Group is not found in our database\nPlease activate using /activate')
                     } else {
@@ -537,7 +588,7 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                     }
                     break
                 case 'groups':
-                    if (isOwner == ctx.message.from.id) {
+                    if (isOwner) {
                         data = await setting.find({}).toArray()
                         let arr = []
                         data.forEach(res => {
@@ -608,11 +659,38 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     }
                     break
+                case 'groupmenu':
+                    if (isAdmin) {
+                        const buttons = [
+                            [{ text: 'Settings', callback_data: 'group_admin_settings' }]
+                        ]
+                        ctx.reply('Group Menu', {
+                            reply_markup: {
+                                inline_keyboard: buttons
+                            }
+                        })
+                    } else {
+                        ctx.reply('Only admin can use this command')
+                    }
+
+                    break
+                case 'adminmenu':
+                    if (isAdmin) {
+                        text = `Admin Menu\n\n`
+                        text += `/welcome - Enable or disable welcome message\n`
+                        text += `/autodl - Enable or disable auto downloader\n`
+                        text += `/auto_gpt - Enable or disable auto gpt\n`
+                        ctx.reply(text)
+                    } else {
+                        ctx.reply('Only admins can use this command')
+                    }
+                    break
             }
         })
         bot.launch()
         console.log('Bot is running')
-// main functions
+
+        // main functions
 
         async function getLink(file_id) {
             try {
@@ -644,8 +722,8 @@ verifyToken(config.BOT_TOKEN).then((res) => {
 })
 
 // Functions 
-function logFunction(isGroup, isCmd, typeMessage, user, groupName) {
-    if (!isGroup && !isCmd)
+function logFunction(group, isCmd, typeMessage, user, groupName) {
+    if (!group && !isCmd)
         console.log(
             ("├"),
             ("[ PRIVATE ]"),
@@ -653,7 +731,7 @@ function logFunction(isGroup, isCmd, typeMessage, user, groupName) {
             ("from"),
             (user.full_name)
         );
-    if (isGroup && !isCmd)
+    if (group && !isCmd)
         console.log(
             ("├"),
             ("[  GROUP  ]"),
@@ -663,7 +741,7 @@ function logFunction(isGroup, isCmd, typeMessage, user, groupName) {
             ("in"),
             (groupName)
         );
-    if (!isGroup && isCmd)
+    if (!group && isCmd)
         console.log(
             ("├"),
             ("[ COMMAND ]"),
@@ -671,7 +749,7 @@ function logFunction(isGroup, isCmd, typeMessage, user, groupName) {
             ("from"),
             (user.full_name)
         );
-    if (isGroup && isCmd)
+    if (group && isCmd)
         console.log(
             ("├"),
             ("[ COMMAND ]"),
@@ -683,32 +761,6 @@ function logFunction(isGroup, isCmd, typeMessage, user, groupName) {
         );
 }
 
-function newFunction(
-    isQuoted,
-    file_id,
-    isQuotedImage,
-    isQuotedVideo,
-    isQuotedAudio,
-    isQuotedDocument,
-    isQuotedAnimation
-) {
-    if (isQuoted) {
-        file_id = isQuotedImage
-            ? ctx.message.reply_to_message.photo[
-                ctx.message.reply_to_message.photo.length - 1
-            ].file_id
-            : isQuotedVideo
-                ? ctx.message.reply_to_message.video.file_id
-                : isQuotedAudio
-                    ? ctx.message.reply_to_message.audio.file_id
-                    : isQuotedDocument
-                        ? ctx.message.reply_to_message.document.file_id
-                        : isQuotedAnimation
-                            ? ctx.message.reply_to_message.animation.file_id
-                            : "";
-    }
-    return file_id;
-}
 
 const stream2buffer = async (stream) => {
     const chunks = [];
