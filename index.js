@@ -4,6 +4,7 @@ const { useNewReplies } = require("telegraf/future")
 const { verifyToken } = require('./lib/index')
 const config = require('./config.json')
 const imgToPDF = require('image-to-pdf')
+const geminiAi = require('./lib/genAi')
 const {
     getArgs,
     getUser,
@@ -387,6 +388,21 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                 case 'botid':
                     ctx.reply('bot id: ' + ctx.botInfo.id);
                     break;
+                case 'ai':
+                    if (isRegisteredMember(ctx.message.from.id) == false) {
+                        ctx.reply('You are not found in our database\nPlease activate using /start')
+                    } else {
+                        if (args.length == 0) {
+                            ctx.reply('Please provide prompt')
+                        } else {
+                    await geminiAi(args[0]).then((res) => {
+                        ctx.reply(res)
+                    }).catch((e) => {
+                        console.log(e)
+                    })
+                }
+                }
+                    break;
                 case 'groupid':
                     ctx.reply('group id: ' + ctx.chat.id);
                     break;
@@ -463,20 +479,28 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                 case 'listuser':
                     if (isOwner) {
                         try {
-                            let data = await member.find({}).toArray()
-                            let total_count = await member.countDocuments()
-                            arr = []
-                            let res = data.forEach(res => {
-                                arr.push(JSON.stringify(res, null, 2))
-                            })
-                            ctx.sendMessage('Total users ' + total_count + '\n' + arr.join('\n'))
+                            let data = await member.find({}).toArray();
+                            let total_count = await member.countDocuments();
+                            let arr = [];
+                            data.forEach(res => {
+                                arr.push(JSON.stringify(res, null, 2));
+                            });
+                            if (arr.length > 10) {
+                                for (let i = 0; i < arr.length; i += 10) {
+                                    let chunk = arr.slice(i, i + 10);
+                                    ctx.reply(chunk.join('\n'));
+                                }
+                            } else {
+                                ctx.reply(arr.join('\n'));
+                            }
                         } catch (e) {
-                            console.log(e)
+                            console.log(e);
                         }
                     } else {
-                        ctx.reply('Only owner can use this command')
+                        ctx.reply('Only owner can use this command');
                     }
                     break;
+
                 case 'bc':
                 case 'broadcast':
                     try {
@@ -517,6 +541,17 @@ verifyToken(config.BOT_TOKEN).then((res) => {
                         }
                     } else {
                         ctx.reply('Only owner can use this command');
+                    }
+                    break;
+                case 'groupinfo':
+                    if (group) {
+                        let members = await ctx.getChatMembersCount();
+                        ctx.replyWithPhoto(await ctx.getPhotoProfile(ctx.chat.id), {
+                            caption: `Group Name: ${ctx.chat.title}\nGroup ID: ${ctx.chat.id}\nMembers: ${members}`
+                        })
+
+                    } else {
+                        ctx.reply('This command only works in a group');
                     }
                     break;
                 case 'autodl':

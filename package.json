@@ -1,7 +1,7 @@
 {
   "name": "telegram-movie-bot",
   "version": "1.1.2",
-  "description": "Telegram NodeJS movie filter bot",
+  "description": "Telegram NodeJS group management bot",
   "main": "index.js",
   "scripts": {
     "test": "echo \"Running Test\" &&  nodemon index.test.js",
@@ -9,7 +9,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SafwanGanz/tg_movie_filter_bot.git"
+    "url": "git+https://github.com/SafwanGanz/telegram-bot-nodejs.git"
   },
   "keywords": [
     "Tgbot",
@@ -25,14 +25,16 @@
   "author": "SafwanGanz",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/SafwanGanz/tg_movie_filter_bot/issues"
+    "url": "https://github.com/SafwanGanz/telegram-bot-nodejs/issues"
   },
-  "homepage": "https://github.com/SafwanGanz/tg_movie_filter_bot#readme",
+  "homepage": "https://github.com/SafwanGanz/telegram-bot-nodejs#readme",
   "dependencies": {
+    "@google/generative-ai": "^0.8.0",
     "axios": "^1.6.8",
     "canvas": "^2.11.2",
     "chalk": "^4.1.2",
     "child_process": "^1.0.2",
+    "file-type": "^19.0.0",
     "image-to-pdf": "^2.0.0",
     "moment-timezone": "^0.5.45",
     "mongodb": "^6.5.0",
