@@ -19,7 +19,7 @@ Add valid values on config.json
  
 - [Bot Token](https://t.me/BotFather)
 - [MongoDB](https://cloud.mongodb.com)
-- [Open Ai key]('://platform.openai.com/docs/libraries/node-js-library)
+- [Open Ai key](https://platform.openai.com/docs/libraries/node-js-library)
 - [Gemini Ai Api](https://makersuite.google.com/app/apikey)
 
 
