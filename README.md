@@ -7,7 +7,7 @@
   </p>
 
 
-[![chatwithbot](/assets/chat.png?size=50)](https://t.me/felixStudyBot)
+[![chatwithbot](/assets/chat.png?size=50)](https://t.me/alienalfaBot)
 
 ## 📋 Requirements
 
