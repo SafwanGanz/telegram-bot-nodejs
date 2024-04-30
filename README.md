@@ -7,12 +7,13 @@
   </p>
 
 
-
+[![chatwithbot](/assets/chat.png?size=50)](https://t.me/felixStudyBot)
 
 ## 📋 Requirements
 
 >- NodeJS
 >- Python
+
 ## 📝 Config
 
 Add valid values on config.json
