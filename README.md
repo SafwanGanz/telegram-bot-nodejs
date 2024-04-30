@@ -16,17 +16,23 @@
 ## 📝 Config
 
 Add valid values on config.json
+ 
+- [Bot Token]('https://t.me/BotFather')
+- [MongoDB]('https://cloud.mongodb.com')
+- [Open Ai key]('https://platform.openai.com/docs/libraries/node-js-library')
+- [Gemini Ai Api]('https://makersuite.google.com/app/apikey')
+
 
 ```bash
 {
-    "BOT_TOKEN": "Add Your Bot Token here",
+    "BOT_TOKEN": "",
     "PREFIX": "/",
-    "OWNER_ID": "Put owner chat id",
-    "MONGO_URL": "put mongoDB Url",
+    "OWNER_ID": "",
+    "MONGO_URL": "",
     "GPT_KEY": "",
     "GENINI_API": "",
-    "SUDO": "(if u want) add chat id of sudo user",
-    "IMG_URL": "Image url",
+    "SUDO": "",
+    "IMG_URL": "",
     "MOVIE_DB_CHANNEL_ID": ""
 }
 ```
